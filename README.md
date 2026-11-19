@@ -31,7 +31,16 @@ docker compose exec -T app pytest -q
 docker compose config --quiet
 ```
 
-原始样例在 `sample_data/`。测试在 `tests/`。封存文件是单份CSV，含运行清单、计算证据、隔离原因与对账。复核需提交当前版本，陈旧复核返回409。
+原始样例在 `sample_data/`。测试在 `tests/`。封存文件是单份CSV，含运行清单、计算证据、隔离原因、对账与修订台账。复核需提交当前版本，陈旧复核返回409。
+
+## 隔离补正（修订链）
+
+裁决见 `docs/CORRECTION-RULING.md`：**补正不覆盖原批次**，原批次冻结为 `superseded`，补正生成后继批次（`active`），同一修订链只允许一个可发布结论。
+
+- 发起：`POST /api/runs/<run_id>/corrections`，台账逐条覆盖父批次隔离目标（冲突按整组），`CORRECTED` 须带补正后取值，任何处置都须填写依据。
+- 幂等：同源重跑沿用原 `run_id`；同一父批次+同一台账指纹返回同一后继批次，不新增修订。
+- 追溯：`GET /api/runs/<run_id>/lineage`；后继批次的修订台账含原值（before）、补正后值（after）、原因码与依据，并入结案 CSV 与校验和。
+- 约束：已取代批次只读，复核与导出均返回 409；落库与链头切换同事务，失败回滚保留旧版本。
 
 ## 数据与限制
 
